@@ -1,0 +1,352 @@
+// Run with Jetifier disabled:
+//   $ ./gradlew -Pandroid.enableJetifier=false canIDropJetifier
+// See https://github.com/plnice/can-i-drop-jetifier for more details
+plugins {
+    id "com.android.application"
+
+    id "com.github.plnice.canidropjetifier" version "0.5"
+
+    id "kotlin-android"
+    id "kotlin-android-extensions"
+    id 'kotlin-kapt'
+    id 'org.jetbrains.kotlin.plugin.serialization' version '1.5.0'
+    id "com.apollographql.apollo" version "$apolloVersion"
+}
+
+canIDropJetifier {
+    verbose = true
+}
+
+project.ext.envConfigFiles = [
+        debug: ".env",
+        release: ".env",
+        stagingrelease: ".env.staging",
+        productionrelease: ".env.production"
+]
+apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
+
+/**
+ * The react.gradle file registers a task for each build variant (e.g. bundleDebugJsAndAssets
+ * and bundleReleaseJsAndAssets).
+ * These basically call `react-native bundle` with the correct arguments during the Android build
+ * cycle. By default, bundleDebugJsAndAssets is skipped, as in debug/dev mode we prefer to load the
+ * bundle directly from the development server. Below you can see all the possible configurations
+ * and their defaults. If you decide to add a configuration block, make sure to add it before the
+ * `apply from: "../../node_modules/react-native/react.gradle"` line.
+ *
+ * project.ext.react = [
+ *   // the name of the generated asset file containing your JS bundle
+ *   bundleAssetName: "index.android.bundle",
+ *
+ *   // the entry file for bundle generation
+ *   entryFile: "index.android.js",
+ *
+ *   // whether to bundle JS and assets in debug mode
+ *   bundleInDebug: false,
+ *
+ *   // whether to bundle JS and assets in release mode
+ *   bundleInRelease: true,
+ *
+ *   // whether to bundle JS and assets in another build variant (if configured).
+ *   // See http://tools.android.com/tech-docs/new-build-system/user-guide#TOC-Build-Variants
+ *   // The configuration property can be in the following formats
+ *   //         'bundleIn${productFlavor}${buildType}'
+ *   //         'bundleIn${buildType}'
+ *   // bundleInFreeDebug: true,
+ *   // bundleInPaidRelease: true,
+ *   // bundleInBeta: true,
+ *
+ *   // whether to disable dev mode in custom build variants (by default only disabled in release)
+ *   // for example: to disable dev mode in the staging build type (if configured)
+ *   devDisabledInStaging: true,
+ *   // The configuration property can be in the following formats
+ *   //         'devDisabledIn${productFlavor}${buildType}'
+ *   //         'devDisabledIn${buildType}'
+ *
+ *   // the root of your project, i.e. where "package.json" lives
+ *   root: "../../",
+ *
+ *   // where to put the JS bundle asset in debug mode
+ *   jsBundleDirDebug: "$buildDir/intermediates/assets/debug",
+ *
+ *   // where to put the JS bundle asset in release mode
+ *   jsBundleDirRelease: "$buildDir/intermediates/assets/release",
+ *
+ *   // where to put drawable resources / React Native assets, e.g. the ones you use via
+ *   // require('./image.png')), in debug mode
+ *   resourcesDirDebug: "$buildDir/intermediates/res/merged/debug",
+ *
+ *   // where to put drawable resources / React Native assets, e.g. the ones you use via
+ *   // require('./image.png')), in release mode
+ *   resourcesDirRelease: "$buildDir/intermediates/res/merged/release",
+ *
+ *   // by default the gradle tasks are skipped if none of the JS files or assets change; this means
+ *   // that we don't look at files in android/ or ios/ to determine whether the tasks are up to
+ *   // date; if you have any other folders that you want to ignore for performance reasons (gradle
+ *   // indexes the entire tree), add them here. Alternatively, if you have JS files in android/
+ *   // for example, you might want to remove it from here.
+ *   inputExcludes: ["android/**", "ios/**"],
+ *
+ *   // override which node gets called and with what additional arguments
+ *   nodeExecutableAndArgs: ["node"],
+ *
+ *   // supply additional arguments to the packager
+ *   extraPackagerArgs: []
+ * ]
+ */
+
+project.ext.react = [
+        entryFile: "index.js",
+        enableHermes: true // clean and rebuild if changing
+]
+
+def versions = new Properties()
+file("../../version.properties").withInputStream { versions.load(it) }
+ext {
+    version_major = versions.version_major
+    version_minor = versions.version_minor
+    version_patch = versions.version_patch
+    version_build = versions.version_build
+}
+
+def shadowVersions = new Properties()
+file("../../version.shadow.properties").withInputStream { shadowVersions.load(it) }
+ext {
+    shadow_version_major = shadowVersions.version_major
+    shadow_version_minor = shadowVersions.version_minor
+    shadow_version_patch = shadowVersions.version_patch
+    shadow_version_build = shadowVersions.version_build
+}
+
+/**
+ * Set this to true to create two separate APKs instead of one:
+ *   - An APK that only works on ARM devices
+ *   - An APK that only works on x86 devices
+ * The advantage is the size of the APK is reduced by about 4MB.
+ * Upload all the APKs to the Play Store and people will download
+ * the correct one based on the CPU architecture of their device.
+ */
+def enableSeparateBuildPerCPUArchitecture = false
+
+/**
+ * Run Proguard to shrink the Java bytecode in release builds.
+ */
+def enableProguardInReleaseBuilds = false
+
+def computeVersionCode() {
+    return 10_000_000 * (version_major as Integer) + 10_000 * (version_minor as Integer) + 100 * (version_patch as Integer) + (version_build as Integer)
+}
+
+def computeVersionName() {
+    return "$version_major.$version_minor.$version_patch"
+}
+
+task incrementBuildNumber(type: WriteProperties) {
+    outputFile = file('../../version.properties')
+    property 'version_major', version_major
+    property 'version_minor', version_minor
+    property 'version_patch', version_patch
+    property 'version_build', (version_build as Integer) + 1
+}
+
+task incrementShadowBuildNumber(type: WriteProperties) {
+    outputFile = file('../../version.shadow.properties')
+    property 'version_major', shadow_version_major
+    property 'version_minor', shadow_version_minor
+    property 'version_patch', shadow_version_patch
+    property 'version_build', (shadow_version_build as Integer) + 1
+}
+
+
+/**
+ * The preferred build flavor of JavaScriptCore.
+ *
+ * For example, to use the international variant, you can use:
+ * `def jscFlavor = 'org.webkit:android-jsc-intl:+'`
+ *
+ * The international variant includes ICU i18n library and necessary data
+ * allowing to use e.g. `Date.toLocaleString` and `String.localeCompare` that
+ * give correct results when using with locales other than en-US.  Note that
+ * this variant is about 6MiB larger per architecture than default.
+ */
+def jscFlavor = 'org.webkit:android-jsc:+'
+
+/**
+ * Whether to enable the Hermes VM.
+ *
+ * This should be set on project.ext.react and mirrored here.  If it is not set
+ * on project.ext.react, JavaScript will not be compiled to Hermes Bytecode
+ * and the benefits of using Hermes will therefore be sharply reduced.
+ */
+def enableHermes = project.ext.react.get("enableHermes", false);
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    defaultConfig {
+        applicationId "com.chirpbooks.chirp"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode computeVersionCode()
+        versionName computeVersionName()
+        multiDexEnabled true
+
+        // `testBuildType` is used by Detox, and determines which assemble*AndroidTest tasks are available.  For
+        // example, with the default `debug` value, we get tasks assembleChirpDebugAndroidTest and
+        // assembleShadowDebugAndroidTest. With `testBuildType` as `release` these become `assemble*ReleaseAndroidTest`.
+        testBuildType System.getProperty('testBuildType', 'debug')
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        resValue "string", "build_config_package", "com.chirpbooks.chirp"
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments = ["room.schemaLocation": "$projectDir/schemas".toString()]
+            }
+        }
+    }
+    flavorDimensions "version"
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8.toString()
+    }
+    productFlavors {
+        chirp {}
+        shadow {
+            applicationId "com.chirpbooks.zazu"
+        }
+    }
+    splits {
+        abi {
+            reset()
+            enable enableSeparateBuildPerCPUArchitecture
+            universalApk false  // If true, also generate a universal APK
+            include "armeabi-v7a", "x86", "arm64-v8a", "x86_64"
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled enableProguardInReleaseBuilds
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
+        stagingrelease {
+            initWith release
+            matchingFallbacks = ['release']
+        }
+        productionrelease {
+            initWith release
+            matchingFallbacks = ['release']
+        }
+
+    }
+    // applicationVariants are e.g. debug, release
+    applicationVariants.all { variant ->
+        variant.outputs.each { output ->
+            // For each separate APK per architecture, set a unique version code as described here:
+            // http://tools.android.com/tech-docs/new-build-system/user-guide/apk-splits
+            def versionCodes = ["armeabi-v7a": 1, "x86": 2, "arm64-v8a": 3, "x86_64": 4]
+            def abi = output.getFilter(com.android.build.OutputFile.ABI)
+            if (abi != null) {  // null for the universal-debug, universal-release variants
+                output.versionCodeOverride =
+                        versionCodes.get(abi) * 1048576 + defaultConfig.versionCode
+            }        }
+    }
+    testOptions {
+        unitTests.includeAndroidResources = true
+        unitTests.returnDefaultValues = true
+    }
+    packagingOptions {
+        pickFirst "META-INF/AL2.0"
+        pickFirst "META-INF/LGPL2.1"
+    }
+}
+
+// Include the testShared classes in both unit and instrumentation test builds
+android.sourceSets {
+    test {
+        java.srcDirs += "$projectDir/src/testShared"
+    }
+
+    androidTest {
+        java.srcDirs += "$projectDir/src/testShared"
+    }
+}
+
+apply from: "../../node_modules/react-native/react.gradle"
+apply from: "../../node_modules/@sentry/react-native/sentry.gradle"
+
+apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
+
+
+dependencies {
+    implementation project(':react-native-config')
+    implementation project(':react-native-fs')
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation 'androidx.multidex:multidex:2.0.1'
+    implementation 'androidx.media:media:1.3.0'
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation "com.google.android.gms:play-services-cast-framework:${rootProject.ext.castFrameworkVersion}"
+    implementation 'com.google.android.exoplayer:exoplayer:2.12.1'
+
+    if (enableHermes) {
+        def hermesPath = "../../node_modules/hermes-engine/android/";
+        debugImplementation files(hermesPath + "hermes-debug.aar")
+        releaseImplementation files(hermesPath + "hermes-release.aar")
+        stagingreleaseImplementation files(hermesPath + "hermes-release.aar")
+        productionreleaseImplementation files(hermesPath + "hermes-release.aar")
+    } else {
+        implementation jscFlavor
+    }
+
+    // note: we need to use the versions below, even though there's a more modern version of RxJava,
+    // because the AE SDK uses Observable from RxJava 1.x
+    implementation 'io.reactivex:rxjava:1.3.0'
+    implementation 'io.reactivex:rxandroid:1.2.1'
+
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    implementation 'com.facebook.react:react-native:+' // From node_modules
+    implementation ('io.audioengine.mobile:all-android:8.1.4')
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.1"
+    implementation 'com.android.volley:volley:1.2.0'
+
+    //  kingfisher
+    implementation "com.apollographql.apollo:apollo-runtime:$apolloVersion"
+    implementation "com.apollographql.apollo:apollo-coroutines-support:$apolloVersion"
+    implementation "io.reactivex.rxjava3:rxjava:3.0.13"
+    implementation "io.reactivex.rxjava3:rxkotlin:3.0.1"
+    implementation "com.squareup.picasso:picasso:2.71828"
+    // Apollo uses OkHttp internally, and this is a nice debugging tool
+    implementation("com.squareup.okhttp3:logging-interceptor:4.9.1")
+
+    implementation "androidx.room:room-runtime:$room_version"
+    implementation "androidx.room:room-ktx:$room_version"
+    kapt "androidx.room:room-compiler:$room_version"
+
+    androidTestImplementation "androidx.test:core:$androidXTestVersion"
+    androidTestImplementation "androidx.test:runner:$androidXTestVersion"
+    androidTestImplementation "androidx.test:rules:$androidXTestVersion"
+    androidTestImplementation 'androidx.test.ext:junit:1.1.2'
+    androidTestImplementation 'com.google.truth:truth:1.1.2'
+    androidTestImplementation "io.mockk:mockk-android:$mockkVersion"
+    androidTestImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.5.1'
+    androidTestImplementation "com.squareup.okhttp3:mockwebserver:4.9.1"
+
+    testImplementation "androidx.test:core:$androidXTestVersion"
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'com.google.truth:truth:1.1'
+    testImplementation "io.mockk:mockk:$mockkVersion"
+    testImplementation "org.jetbrains.kotlin:kotlin-test"
+    testImplementation "org.jetbrains.kotlin:kotlin-test-junit"
+    testImplementation "androidx.room:room-testing:$room_version"
+}
+
+apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)
+
+apollo {
+    generateKotlinModels.set(true)
+}
