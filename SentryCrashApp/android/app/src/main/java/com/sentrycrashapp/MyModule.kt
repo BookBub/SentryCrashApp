@@ -17,10 +17,8 @@ class MyModule internal constructor(context: ReactApplicationContext) : ReactCon
 
     @ReactMethod
     fun throwException(msg: String) {
-        thread {
-            val message = "Not an int"
-            message.toInt()
-        }
+        val message = "Not an int"
+        message.toInt()
     }
 
     @ReactMethod
