@@ -15,7 +15,7 @@ class MyPackage() : ReactPackage {
     override fun createNativeModules(
             reactContext: ReactApplicationContext): List<NativeModule> {
         val modules = ArrayList<NativeModule>()
-        modules.add(Module(reactContext))
+        modules.add(MyModule(reactContext))
 
         return modules
     }

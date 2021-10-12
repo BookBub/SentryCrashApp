@@ -4,13 +4,15 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
 
-class Module internal constructor(context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
+class MyModule internal constructor(context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
     override fun getName(): String {
-        return "Module"
+        return "MyModule"
     }
 
     @ReactMethod
     fun throwException(msg: String) {
+        println("** throwing an exception **")
         throw IllegalAccessException(msg)
+        println("** somehow handled the exception **")
     }
 }

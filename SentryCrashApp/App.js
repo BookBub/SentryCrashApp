@@ -27,7 +27,7 @@ import {
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
 import { NativeModules } from 'react-native';
-const { Module } = NativeModules;
+const { MyModule } = NativeModules;
 
 import * as Sentry from "@sentry/react-native";
 import { SentryErrorNotifier } from "./SentryErrorNotifier";
@@ -69,7 +69,7 @@ const triggerJSCrash = () => {
 };
 
 const triggerNativeCrash = () => {
-  Module.throwException("Unhandled native exception")
+  MyModule.throwException("Unhandled native exception")
 };
 
 const App: () => Node = () => {
@@ -91,7 +91,7 @@ const App: () => Node = () => {
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
           }}>
           <Button title="JS Crash" onPress={triggerJSCrash} />
-          <Button title="Native Crash" />
+          <Button title="Native Crash" onPress={triggerNativeCrash} />
           <Button title="Missing Crash" />
         </View>
       </ScrollView>
