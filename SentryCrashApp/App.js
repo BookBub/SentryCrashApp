@@ -72,6 +72,11 @@ const triggerNativeCrash = () => {
   MyModule.throwException("Unhandled native exception")
 };
 
+const triggerSerializationCrash = () => {
+  MyModule.setSharedPreference()
+  MyModule.getSharedPreference()
+};
+
 const App: () => Node = () => {
   const isDarkMode = useColorScheme() === 'dark';
 
@@ -92,7 +97,7 @@ const App: () => Node = () => {
           }}>
           <Button title="JS Crash" onPress={triggerJSCrash} />
           <Button title="Native Crash" onPress={triggerNativeCrash} />
-          <Button title="Missing Crash" />
+          <Button title="Missing Crash" onPress={triggerSerializationCrash} />
         </View>
       </ScrollView>
     </SafeAreaView>
