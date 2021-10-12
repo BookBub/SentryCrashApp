@@ -3,6 +3,7 @@ package com.sentrycrashapp
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import kotlin.concurrent.thread
 
 class MyModule internal constructor(context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
     override fun getName(): String {
@@ -11,8 +12,9 @@ class MyModule internal constructor(context: ReactApplicationContext) : ReactCon
 
     @ReactMethod
     fun throwException(msg: String) {
-        println("** throwing an exception **")
-        throw IllegalAccessException(msg)
-        println("** somehow handled the exception **")
+        thread() {
+            val message = "Not an int"
+            message.toInt()
+        }
     }
 }
