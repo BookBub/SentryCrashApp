@@ -73,8 +73,11 @@ const triggerNativeCrash = () => {
 };
 
 const triggerSerializationCrash = () => {
-  MyModule.setSharedPreference()
   MyModule.getSharedPreference()
+};
+
+const triggerMediaSessionPlay = () => {
+  MyModule.play()
 };
 
 const App: () => Node = () => {
@@ -98,6 +101,7 @@ const App: () => Node = () => {
           <Button title="JS Crash" onPress={triggerJSCrash} />
           <Button title="Native Crash" onPress={triggerNativeCrash} />
           <Button title="Missing Crash" onPress={triggerSerializationCrash} />
+          <Button title="Play" onPress={triggerMediaSessionPlay} />
         </View>
       </ScrollView>
     </SafeAreaView>

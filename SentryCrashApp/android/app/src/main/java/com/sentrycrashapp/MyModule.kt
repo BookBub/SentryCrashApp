@@ -1,15 +1,60 @@
 package com.sentrycrashapp
 
-import android.content.Context
-import android.content.SharedPreferences
+import android.content.*
+import android.os.IBinder
+import androidx.core.content.ContextCompat.startActivity
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
-import kotlinx.serialization.json.Json
-import kotlin.concurrent.thread
 
-class MyModule internal constructor(context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
-    private val sharedPreferences: SharedPreferences = context.getSharedPreferences("FOO", Context.MODE_PRIVATE)
+data class MediaItemData(
+        val mediaId: String,
+        val title: String,
+        val browsable: Boolean,
+        var playbackRes: Int
+)
+
+val defaultMediaItem = MediaItemData("1", "Media Item", true, 1)
+
+class MyModule internal constructor(val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
+
+    private var audioService: BackgroundAudioService? = null
+
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(className: ComponentName, service: IBinder) {
+            // We've bound to BackgroundAudioService, cast the IBinder and get BackgroundAudioService instance
+            if (service is BackgroundAudioService.LocalBinder) {
+                audioService = service.service
+                Preferences(context).setSharedPreference()
+            }
+        }
+
+        override fun onServiceDisconnected(arg0: ComponentName) {
+            // only called when the service crashes
+            ErrorNotifier.report("background audio service unexpectedly disconnected", NotifierLogLevel.WARNING)
+        }
+    }
+
+    init {
+        EventEmitter.attachReactContext(context)
+
+        try {
+            val intent = Intent(reactApplicationContext, BackgroundAudioService::class.java)
+            reactApplicationContext.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        } catch (e: Exception) {
+            ErrorNotifier.report("bind background audio service failed", NotifierLogLevel.WARNING)
+
+        }
+    }
+
+    private fun launchStartedService() {
+        try {
+            val intent = Intent(reactApplicationContext, BackgroundAudioService::class.java)
+            reactApplicationContext.startService(intent)
+        } catch (e: Exception) {
+            ErrorNotifier.report("start background audio service failed", NotifierLogLevel.WARNING)
+        }
+    }
 
     override fun getName(): String {
         return "MyModule"
@@ -22,19 +67,15 @@ class MyModule internal constructor(context: ReactApplicationContext) : ReactCon
     }
 
     @ReactMethod
-    fun setSharedPreference() {
-        thread {
-            sharedPreferences
-                    .edit()
-                    .putString("aaa", Json.encodeToString(Data.serializer(), Data(42, "str")))
-                    .apply()
-        }
+    fun getSharedPreference() {
+        Preferences(this.context).getSharedPreference()
     }
 
     @ReactMethod
-    fun getSharedPreference() {
-        thread {
-            Json.decodeFromString(AudiobookMetadata.serializer(), sharedPreferences.getString("aaa", null)!!)
-        }
+    fun play() {
+        launchStartedService()
+        val intent = Intent(context, MediaPlayerActivity::class.java)
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(context, intent, null)
     }
 }
