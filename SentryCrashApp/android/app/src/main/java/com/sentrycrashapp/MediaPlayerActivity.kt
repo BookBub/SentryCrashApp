@@ -7,7 +7,6 @@ import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.PlaybackStateCompat
-import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 
 class MediaPlayerActivity : AppCompatActivity() {
@@ -44,26 +43,8 @@ class MediaPlayerActivity : AppCompatActivity() {
     }
 
     fun buildTransportControls() {
+
         val mediaController = MediaControllerCompat.getMediaController(this@MediaPlayerActivity)
-        // Grab the view for the play/pause button
-        val playPause = findViewById<ImageView>(12).apply {
-            setOnClickListener {
-                // Since this is a play/pause button, you'll need to test the current state
-                // and choose the action accordingly
-
-                val pbState = mediaController.playbackState.state
-                if (pbState == PlaybackStateCompat.STATE_PLAYING) {
-                    mediaController.transportControls.pause()
-                } else {
-                    mediaController.transportControls.play()
-                }
-            }
-        }
-
-        // Display the initial state
-        val metadata = mediaController.metadata
-        val pbState = mediaController.playbackState
-
         // Register a Callback to stay in sync
         mediaController.registerCallback(controllerCallback)
     }

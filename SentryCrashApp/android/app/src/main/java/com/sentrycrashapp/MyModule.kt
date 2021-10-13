@@ -1,6 +1,7 @@
 package com.sentrycrashapp
 
 import android.content.*
+import android.net.Uri
 import android.os.IBinder
 import androidx.core.content.ContextCompat.startActivity
 import com.facebook.react.bridge.ReactApplicationContext
@@ -10,11 +11,13 @@ import com.facebook.react.bridge.ReactMethod
 data class MediaItemData(
         val mediaId: String,
         val title: String,
+        val subtitle: String,
         val browsable: Boolean,
-        var playbackRes: Int
+        var playbackRes: Int,
+        var mediaUri: Uri
 )
 
-val defaultMediaItem = MediaItemData("1", "Media Item", true, 1)
+val defaultMediaItem = MediaItemData("1", "Media Item", "default", true, 1, Uri.parse("https://file-examples-com.github.io/uploads/2017/11/file_example_MP3_700KB.mp3"))
 
 class MyModule internal constructor(val context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
 
