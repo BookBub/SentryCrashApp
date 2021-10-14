@@ -15,6 +15,7 @@ To run the app:
 
 From the `android` directory, run:
 - `./gradlew clean && ./gradlew assembleRelease`
+- Install by running `adb install app/build/outputs/apk/chirp/release/app-chirp-release.apk`
 
 
 ### To reproduce a reported crash:
@@ -25,5 +26,6 @@ From the `android` directory, run:
 ### To reproduce an unreported crash:   
 - Follow one of the above steps to install the app
 - Open Android Auto
+- Make sure you are in developer mode
 - Navigate to the SentryCrashApp and open it
 - A crash should be triggered and an event will not appear in Sentry
