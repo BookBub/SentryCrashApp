@@ -100,8 +100,8 @@ const App: () => Node = () => {
           }}>
           <Button title="JS Crash" onPress={triggerJSCrash} />
           <Button title="Native Crash" onPress={triggerNativeCrash} />
-          <Button title="Missing Crash" onPress={triggerSerializationCrash} />
-          <Button title="Play" onPress={triggerMediaSessionPlay} />
+          <Button title="Serialization Crash" onPress={triggerSerializationCrash} />
+          <Button title="Open Media Session Activity" onPress={triggerMediaSessionPlay} />
         </View>
       </ScrollView>
     </SafeAreaView>
